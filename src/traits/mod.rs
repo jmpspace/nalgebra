@@ -5,7 +5,7 @@ pub use traits::geometry::{AbsoluteRotate, Cross, CrossMatrix, Dot, FromHomogene
                            Transform, Transformation, Translate, Translation, UniformSphereSample};
 
 pub use traits::structure::{FloatVec, FloatPnt, Basis, Cast, Col, Dim, Indexable, Iterable,
-                            IterableMut, Mat, SquareMat, Row, NumVec, NumPnt, PntAsVec, VecAsPnt,
+                            IterableMut, Mat, SquareMat, Row, NumVec, NumPnt, PntAsVec,
                             ColSlice, RowSlice, Diag, Eye, Shape, BaseFloat, BaseNum, Zero, One,
                             Bounded};
 

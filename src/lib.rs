@@ -148,10 +148,10 @@ pub use traits::{
     Translate, Translation,
     Transpose,
     UniformSphereSample,
-    VecAsPnt,
     Zero
 };
 
+/*
 pub use structs::{
     Identity,
     DMat,
@@ -171,10 +171,11 @@ pub use linalg::{
     qr,
     householder_matrix
 };
+*/
 
 mod structs;
 mod traits;
-mod linalg;
+// mod linalg;
 mod macros;
 
 // mod lower_triangular;
@@ -275,13 +276,13 @@ pub fn partial_clamp<'a, T: POrd>(value: &'a T, min: &'a T, max: &'a T) -> Optio
 //
 //
 
-/// Create a special identity object.
-///
-/// Same as `Identity::new()`.
-#[inline(always)]
-pub fn identity() -> Identity {
-    Identity::new()
-}
+//   /// Create a special identity object.
+//   ///
+//   /// Same as `Identity::new()`.
+//   #[inline(always)]
+//   pub fn identity() -> Identity {
+//       Identity::new()
+//   }
 
 /// Create a zero-valued value.
 ///
@@ -319,8 +320,10 @@ pub fn orig<P: Orig>() -> P {
 
 /// Returns the center of two points.
 #[inline]
-pub fn center<N: BaseFloat, P: FloatPnt<N, V>, V: Copy>(a: &P, b: &P) -> P {
-    let _2 = one::<N>() + one();
+pub fn center<P: FloatPnt>(a: &P, b: &P) -> P
+    where P::ScalarType: BaseFloat,
+          P::VectorType: Copy {
+    let _2 = one::<P::ScalarType>() + one();
     (*a + *b.as_vec()) / _2
 }
 
@@ -329,37 +332,41 @@ pub fn center<N: BaseFloat, P: FloatPnt<N, V>, V: Copy>(a: &P, b: &P) -> P {
  */
 /// Returns the distance between two points.
 #[inline(always)]
-pub fn dist<N: BaseFloat, P: FloatPnt<N, V>, V: Norm<N>>(a: &P, b: &P) -> N {
+pub fn dist<P: FloatPnt>(a: &P, b: &P) -> P::ScalarType
+    where P::ScalarType: BaseFloat,
+          P::VectorType: Norm<NormType = <P as NumPnt>::ScalarType> {
     a.dist(b)
 }
 
 /// Returns the squared distance between two points.
 #[inline(always)]
-pub fn sqdist<N: BaseFloat, P: FloatPnt<N, V>, V: Norm<N>>(a: &P, b: &P) -> N {
+pub fn sqdist<P: FloatPnt>(a: &P, b: &P) -> P::ScalarType
+    where P::ScalarType: BaseFloat,
+          P::VectorType: Norm<NormType = <P as NumPnt>::ScalarType> {
     a.sqdist(b)
 }
 
 /*
  * Perspective
  */
-/// Computes a projection matrix given the frustrum near plane width, height, the field of
-/// view, and the distance to the clipping planes (`znear` and `zfar`).
-#[deprecated = "Use `Persp3::new(width / height, fov, znear, zfar).as_mat()` instead"]
-pub fn perspective3d<N: BaseFloat + Cast<f64> + Zero + One>(width: N, height: N, fov: N, znear: N, zfar: N) -> Mat4<N> {
-    let aspect = width / height;
-
-    let _1: N = one();
-    let sy    = _1 / (fov * cast(0.5)).tan();
-    let sx    = -sy / aspect;
-    let sz    = -(zfar + znear) / (znear - zfar);
-    let tz    = zfar * znear * cast(2.0) / (znear - zfar);
-
-    Mat4::new(
-        sx,     zero(), zero(), zero(),
-        zero(), sy,     zero(), zero(),
-        zero(), zero(), sz,     tz,
-        zero(), zero(), one(),  zero())
-}
+//   /// Computes a projection matrix given the frustrum near plane width, height, the field of
+//   /// view, and the distance to the clipping planes (`znear` and `zfar`).
+//   #[deprecated = "Use `Persp3::new(width / height, fov, znear, zfar).as_mat()` instead"]
+//   pub fn perspective3d<N: BaseFloat + Cast<f64> + Zero + One>(width: N, height: N, fov: N, znear: N, zfar: N) -> Mat4<N> {
+//       let aspect = width / height;
+//   
+//       let _1: N = one();
+//       let sy    = _1 / (fov * cast(0.5)).tan();
+//       let sx    = -sy / aspect;
+//       let sz    = -(zfar + znear) / (znear - zfar);
+//       let tz    = zfar * znear * cast(2.0) / (znear - zfar);
+//   
+//       Mat4::new(
+//           sx,     zero(), zero(), zero(),
+//           zero(), sy,     zero(), zero(),
+//           zero(), zero(), sz,     tz,
+//           zero(), zero(), one(),  zero())
+//   }
 
 /*
  * Translation<V>
@@ -379,7 +386,7 @@ pub fn perspective3d<N: BaseFloat + Cast<f64> + Zero + One>(width: N, height: N,
 /// }
 /// ```
 #[inline(always)]
-pub fn translation<V, M: Translation<V>>(m: &M) -> V {
+pub fn translation<M: Translation>(m: &M) -> M::TranslationType {
     m.translation()
 }
 
@@ -397,13 +404,13 @@ pub fn translation<V, M: Translation<V>>(m: &M) -> V {
 /// }
 /// ```
 #[inline(always)]
-pub fn inv_translation<V, M: Translation<V>>(m: &M) -> V {
+pub fn inv_translation<M: Translation>(m: &M) -> M::TranslationType {
     m.inv_translation()
 }
 
 /// Applies the translation `v` to a copy of `m`.
 #[inline(always)]
-pub fn append_translation<V, M: Translation<V>>(m: &M, v: &V) -> M {
+pub fn append_translation<M: Translation>(m: &M, v: &M::TranslationType) -> M {
     Translation::append_translation(m, v)
 }
 
@@ -467,7 +474,7 @@ pub fn inv_translate<P, M: Translate<P>>(m: &M, p: &P) -> P {
 /// }
 /// ```
 #[inline(always)]
-pub fn rotation<V, M: Rotation<V>>(m: &M) -> V {
+pub fn rotation<M: Rotation>(m: &M) -> M::RotationType {
     m.rotation()
 }
 
@@ -485,7 +492,7 @@ pub fn rotation<V, M: Rotation<V>>(m: &M) -> V {
 /// }
 /// ```
 #[inline(always)]
-pub fn inv_rotation<V, M: Rotation<V>>(m: &M) -> V {
+pub fn inv_rotation<M: Rotation>(m: &M) -> M::RotationType {
     m.inv_rotation()
 }
 
@@ -505,7 +512,7 @@ pub fn inv_rotation<V, M: Rotation<V>>(m: &M) -> V {
 /// }
 /// ```
 #[inline(always)]
-pub fn append_rotation<V, M: Rotation<V>>(m: &M, v: &V) -> M {
+pub fn append_rotation<M: Rotation>(m: &M, v: &M::RotationType) -> M {
     Rotation::append_rotation(m, v)
 }
 
@@ -525,7 +532,7 @@ pub fn append_rotation<V, M: Rotation<V>>(m: &M, v: &V) -> M {
 /// }
 /// ```
 #[inline(always)]
-pub fn prepend_rotation<V, M: Rotation<V>>(m: &M, v: &V) -> M {
+pub fn prepend_rotation<M: Rotation>(m: &M, v: &M::RotationType) -> M {
     Rotation::prepend_rotation(m, v)
 }
 
@@ -580,22 +587,19 @@ pub fn inv_rotate<V, M: Rotate<V>>(m: &M, v: &V) -> V {
 
 /// Rotates a copy of `m` by `amount` using `center` as the pivot point.
 #[inline(always)]
-pub fn append_rotation_wrt_point<LV: Neg<Output = LV> + Copy,
-                                 AV,
-                                 M: RotationWithTranslation<LV, AV>>(
+pub fn append_rotation_wrt_point<M: RotationWithTranslation>(
                                  m:      &M,
-                                 amount: &AV,
-                                 center: &LV) -> M {
+                                 amount: &M::RotationType,
+                                 center: &M::TranslationType)
+                                 -> M
+    where M::TranslationType: Neg<Output = <M as Translation>::TranslationType> + Copy {
     RotationWithTranslation::append_rotation_wrt_point(m, amount, center)
 }
 
 /// Rotates a copy of `m` by `amount` using `m.translation()` as the pivot point.
 #[inline(always)]
-pub fn append_rotation_wrt_center<LV: Neg<Output = LV> + Copy,
-                                  AV,
-                                  M: RotationWithTranslation<LV, AV>>(
-                                  m:      &M,
-                                  amount: &AV) -> M {
+pub fn append_rotation_wrt_center<M: RotationWithTranslation>(m: &M, amount: &M::RotationType) -> M
+    where M::TranslationType: Neg<Output = <M as Translation>::TranslationType> + Copy {
     RotationWithTranslation::append_rotation_wrt_center(m, amount)
 }
 
@@ -605,11 +609,7 @@ pub fn append_rotation_wrt_center<LV: Neg<Output = LV> + Copy,
 
 /// Builds a rotation matrix from `r`.
 #[inline(always)]
-pub fn to_rot_mat<N, LV, AV, R, M>(r: &R) -> M
-    where R: RotationMatrix<N, LV, AV, Output=M>,
-          M: Mat<N, LV, AV> + Rotation<AV> + Col<LV> + Copy,
-          LV: Mul<M, Output=LV> + Copy,
-{
+pub fn to_rot_mat<R: RotationMatrix>(r: &R) -> R::RotationMatrixType {
     // FIXME: rust-lang/rust#20413
     r.to_rot_mat()
 }
@@ -630,19 +630,19 @@ pub fn absolute_rotate<V, M: AbsoluteRotate<V>>(m: &M, v: &V) -> V {
 
 /// Gets the transformation applicable by `m`.
 #[inline(always)]
-pub fn transformation<T, M: Transformation<T>>(m: &M) -> T {
+pub fn transformation<M: Transformation>(m: &M) -> M::TransformationType {
     m.transformation()
 }
 
 /// Gets the inverse transformation applicable by `m`.
 #[inline(always)]
-pub fn inv_transformation<T, M: Transformation<T>>(m: &M) -> T {
+pub fn inv_transformation<M: Transformation>(m: &M) -> M::TransformationType {
     m.inv_transformation()
 }
 
 /// Gets a transformed copy of `m`.
 #[inline(always)]
-pub fn append_transformation<T, M: Transformation<T>>(m: &M, t: &T) -> M {
+pub fn append_transformation<M: Transformation>(m: &M, t: &M::TransformationType) -> M {
     Transformation::append_transformation(m, t)
 }
 
@@ -668,7 +668,7 @@ pub fn inv_transform<V, M: Transform<V>>(m: &M, v: &V) -> V {
 
 /// Computes the dot product of two vectors.
 #[inline(always)]
-pub fn dot<V: Dot<N>, N>(a: &V, b: &V) -> N {
+pub fn dot<V: Dot>(a: &V, b: &V) -> V::DotProductType {
     Dot::dot(a, b)
 }
 
@@ -678,19 +678,19 @@ pub fn dot<V: Dot<N>, N>(a: &V, b: &V) -> N {
 
 /// Computes the L2 norm of a vector.
 #[inline(always)]
-pub fn norm<V: Norm<N>, N: BaseFloat>(v: &V) -> N {
+pub fn norm<V: Norm>(v: &V) -> V::NormType {
     Norm::norm(v)
 }
 
 /// Computes the squared L2 norm of a vector.
 #[inline(always)]
-pub fn sqnorm<V: Norm<N>, N: BaseFloat>(v: &V) -> N {
+pub fn sqnorm<V: Norm>(v: &V) -> V::NormType {
     Norm::sqnorm(v)
 }
 
 /// Gets the normalized version of a vector.
 #[inline(always)]
-pub fn normalize<V: Norm<N>, N: BaseFloat>(v: &V) -> V {
+pub fn normalize<V: Norm>(v: &V) -> V {
     Norm::normalize(v)
 }
 
@@ -699,7 +699,7 @@ pub fn normalize<V: Norm<N>, N: BaseFloat>(v: &V) -> V {
  */
 /// Computes the determinant of a square matrix.
 #[inline(always)]
-pub fn det<M: Det<N>, N>(m: &M) -> N {
+pub fn det<M: Det>(m: &M) -> M::DeterminantType {
     Det::det(m)
 }
 
@@ -709,7 +709,7 @@ pub fn det<M: Det<N>, N>(m: &M) -> N {
 
 /// Computes the cross product of two vectors.
 #[inline(always)]
-pub fn cross<LV: Cross>(a: &LV, b: &LV) -> LV::Output {
+pub fn cross<V: Cross>(a: &V, b: &V) -> V::CrossProductType {
     Cross::cross(a, b)
 }
 
@@ -720,7 +720,7 @@ pub fn cross<LV: Cross>(a: &LV, b: &LV) -> LV::Output {
 /// Given a vector, computes the matrix which, when multiplied by another vector, computes a cross
 /// product.
 #[inline(always)]
-pub fn cross_matrix<V: CrossMatrix<M>, M>(v: &V) -> M {
+pub fn cross_matrix<V: CrossMatrix>(v: &V) -> V::CrossMatrixFormType {
     CrossMatrix::cross_matrix(v)
 }
 
@@ -730,7 +730,7 @@ pub fn cross_matrix<V: CrossMatrix<M>, M>(v: &V) -> M {
 
 /// Converts a matrix or vector to homogeneous coordinates.
 #[inline(always)]
-pub fn to_homogeneous<M: ToHomogeneous<Res>, Res>(m: &M) -> Res {
+pub fn to_homogeneous<M: ToHomogeneous>(m: &M) -> M::HomogeneousFormType {
     ToHomogeneous::to_homogeneous(m)
 }
 
@@ -786,7 +786,7 @@ pub fn approx_eq_eps<T: ApproxEq<N>, N>(a: &T, b: &T, eps: &N) -> bool {
 
 /// Computes a component-wise absolute value.
 #[inline(always)]
-pub fn abs<M: Absolute<Res>, Res>(m: &M) -> Res {
+pub fn abs<M: Absolute>(m: &M) -> M::AbsoluteValueType {
     Absolute::abs(m)
 }
 
@@ -816,7 +816,7 @@ pub fn transpose<M: Transpose>(m: &M) -> M {
 
 /// Computes the outer product of two vectors.
 #[inline(always)]
-pub fn outer<V: Outer<M>, M>(a: &V, b: &V) -> M {
+pub fn outer<V: Outer>(a: &V, b: &V) -> V::OuterProductType {
     Outer::outer(a, b)
 }
 
@@ -826,7 +826,7 @@ pub fn outer<V: Outer<M>, M>(a: &V, b: &V) -> M {
 
 /// Computes the covariance of a set of observations.
 #[inline(always)]
-pub fn cov<M: Cov<Res>, Res>(observations: &M) -> Res {
+pub fn cov<M: Cov>(observations: &M) -> M::CovarianceMatrixType {
     Cov::cov(observations)
 }
 
@@ -836,7 +836,7 @@ pub fn cov<M: Cov<Res>, Res>(observations: &M) -> Res {
 
 /// Computes the mean of a set of observations.
 #[inline(always)]
-pub fn mean<N, M: Mean<N>>(observations: &M) -> N {
+pub fn mean<M: Mean>(observations: &M) -> M::MeanValueType {
     Mean::mean(observations)
 }
 
@@ -899,7 +899,7 @@ pub fn canonical_basis_element<V: Basis>(i: usize) -> Option<V> {
  */
 /// Gets the diagonal of a square matrix.
 #[inline(always)]
-pub fn diag<M: Diag<V>, V>(m: &M) -> V {
+pub fn diag<M: Diag>(m: &M) -> M::DiagonalType {
     m.diag()
 }
 
